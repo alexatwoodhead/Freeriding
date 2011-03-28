@@ -19,6 +19,7 @@
 package com.freeriding.test;
 
 import com.freeriding.data.Entity;
+import com.freeriding.test.Person;
 
 public class Test1 {
 
@@ -29,6 +30,23 @@ public class Test1 {
 		
 		
 		Entity.Initialise();
+		/*Person person=new Person();
+		person.setSurname("Smith");
+		person.setForename("John");
+		person.Save();
+		System.out.println(String.format("Person id is '%1$s'",person.getIdentity()));
+		*/
+		try
+		{
+	      Person person=new Person(4);
+	      System.out.println(String.format("Person id is '%1$s'",person.getIdentity()));
+	      System.out.println(String.format("  Surname: '%1$s'",person.getSurname()));
+	      System.out.println(String.format("  Forename: '%1$s'",person.getForename()));
+	      
+		} catch(Exception e) {
+			
+			e.printStackTrace();
+		}
 		
 		
 		Entity.Stop();

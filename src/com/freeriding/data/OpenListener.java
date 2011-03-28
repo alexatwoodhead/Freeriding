@@ -21,5 +21,5 @@ package com.freeriding.data;
 import java.util.EventListener;
 
 public class OpenListener implements EventListener {
-	public void OnOpen(Entity entity) {}
+	public void OnOpen(EntityHelper entityHelper) {}
 }

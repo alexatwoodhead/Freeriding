@@ -21,5 +21,5 @@ package com.freeriding.data;
 import java.util.EventListener;
 
 public class SaveListener implements EventListener {
-	public void OnSave(Entity entity) {}
+	public void OnSave(EntityHelper entityHelper) {}
 }

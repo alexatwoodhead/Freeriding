@@ -22,75 +22,51 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.event.EventListenerList;
+
 import com.intersys.globals.Connection;
 import com.intersys.globals.ConnectionContext;
 import com.intersys.globals.NodeReference;
 
+public class EntityHelper implements IEntity {
 
-public class Entity implements IEntity {
+	//private static Connection connection = ConnectionContext.getConnection();
+	
+	// OnSave Events
+	private EventListenerList onSave = new EventListenerList();
+	
+	// OnValidate Events
+	private EventListenerList onValidate = new EventListenerList();
+	
+	// OnOpen Events
+	private EventListenerList onOpen = new EventListenerList();
 	
 	//private NodeReference nodeReference;
 	private boolean isDisposed=false;
 	private boolean isLocked=false;
 	//protected IEntity ientity;
 	
-	protected Global global;
-	
-	protected Global getGlobal() {return global;}
-	
-	/// Create a new Entity from scratch
-	public Entity()
-	{
-		setGlobal();	
-	}
-	
-	/// Called for Entities that implement IEntity
-	/*protected Entity(Global global)
+	private Global global;
+
+	public EntityHelper(Global global)
 	{
 		this.global=global;
 	}
-	*/
 	
-	/// By default entities are not locked
-	/// Called by class that extend class Entity
-	public Entity(long identity)
-	throws InstanceNotFoundException
-	{
-		setGlobal();
-		init(identity);
-	}
-	
-	/// Called for Entities that implement IEntity
-	/*protected Entity(Global global, long identity)
+	public EntityHelper(Global global, long identity)
 	throws InstanceNotFoundException
 	{
 		this.global=global;
 		init(identity);
 	}
-	*/
-	/// Constructor to open object existing object
-	/// with a given Id and possibly with exclusive access
-	/// public Entity(Global global, long identity, boolean lock, IEntity entity)
-	/// Called by class that extend class Entity
-	public Entity(long identity, boolean lock)
-	throws InstanceNotFoundException,InstanceNotLockedException
-	{
-		setGlobal();
-		init(identity, lock);
-	}
 	
-	/// Called for Entities that implement IEntity
-	/*protected Entity(Global global, long identity, boolean lock)
+	public EntityHelper(Global global, long identity, boolean lock)
 	throws InstanceNotFoundException,InstanceNotLockedException
 	{
 		this.global=global;
 		init(identity, lock);
 	}
-	*/
 	
-	protected void setGlobal(){}
-	
-	protected final void init(long identity)
+	private void init(long identity)
 	throws InstanceNotFoundException {
 		if (identity>0) {
 		global.setIdentity(identity);
@@ -103,7 +79,7 @@ public class Entity implements IEntity {
 	}
 }
 	
-	protected final void init(long identity, boolean lock)
+	private void init(long identity, boolean lock)
 			throws InstanceNotFoundException, InstanceNotLockedException {
 		if (identity>0) {
 			global.setIdentity(identity);
@@ -122,7 +98,20 @@ public class Entity implements IEntity {
 		}
 	}
 	
+	public void AddSaveListener(SaveListener saveListener)
+	{
+		onSave.add(SaveListener.class, saveListener);
+	}
 	
+	public void AddValidateListener(ValidateListener validateListener)
+	{
+		onValidate.add(ValidateListener.class, validateListener);
+	}
+	
+	public void AddOpenListener(OpenListener openListener)
+	{
+		onOpen.add(OpenListener.class, openListener);
+	}
 	
 	/// It is a bit lazy to have the garbage
 	/// collector have to clean up
@@ -135,6 +124,9 @@ public class Entity implements IEntity {
 		   try
 		   {
 			   global.RemoveLock();
+			   onOpen=null;
+			   onValidate=null;
+			   onSave=null;
 			   
 			   this.isLocked=false;
 		   }
@@ -145,7 +137,7 @@ public class Entity implements IEntity {
 	   }
 	}
 	
-	public final void Close()
+	public void Close()
 	{
 		if (this.isLocked)
 		   {
@@ -163,31 +155,46 @@ public class Entity implements IEntity {
 	}
 	
 	/// The unique identity of this saved object
-	public final long getIdentity()
+	public long getIdentity()
 	{
 		return this.global.getIdentity();
 	}
 	
-	public final boolean Validate(List<String> errors)
+	public boolean Validate(List<String> errors)
 	{
-		return OnValidate(errors);
+		///List<String> errors= new List<String>();
+		if (onValidate.getListenerCount()==0) return true;
+		boolean hasError=false;
+		for (Object listener : onValidate.getListenerList())
+		{
+			if (((ValidateListener)listener).OnValidate(errors))
+			{
+				hasError=true;
+			}
+		}
+		return hasError;
 	}
 	
 	/// Returns true if the Save succeeds
-	public final boolean Save()
+	public boolean Save()
 	{
 		// if validation for this type fails
 		// don't proceed with the save
-		//if (!Validate(new ArrayList<String>())) return false;
-		if (!OnValidate(new ArrayList<String>())) return false;
-		Connection connection=ConnectionContext.getConnection();
+		if (!Validate(new ArrayList<String>())) return false;
+		
 		/// Increment outside of transaction
 		if (this.global.getIdentity()==0) this.global.NewIdentity();
 		
+		Connection connection=ConnectionContext.getConnection();
 		connection.startTransaction();
 		try
 		{
-			OnSave();
+			//this.ientity.OnSave(this.global);
+			for (Object listener : onSave.getListenerList())
+			{
+				((SaveListener)listener).OnSave(this);
+			}
+			
 			connection.commit();
 		} catch (Exception e)
 		{
@@ -196,55 +203,53 @@ public class Entity implements IEntity {
 		}
 		return true;
 	}
-
-	/// Override the OnSave method to persist instance information to database
-	/// Use utility methods like SetStringProperty
-	/// As convention always call the corresponding "super()" method
-	/// to facilitate building up composite types
-	protected void OnSave() {}
 	
-	/// Override the OnValidate method to add validation behaviour
-	/// Add distinct error messages to the validationError list
-	/// Return false to indicate validation failure
-	/// As convention always call the corresponding "super()" method
-	/// to facilitate building up composite types
-	protected boolean OnValidate(List<String> validationErrors) {return true;}
-	
-	public final synchronized static boolean Initialise()
+	public boolean Open(long identity)
 	{
-		Connection connection = ConnectionContext.getConnection();
-		if (!connection.isConnected()) {
-            connection.connect("User", "_SYSTEM", "SYS");
-         }
+		return Open(identity,false);
+	}
+	
+	public boolean Open(long identity, boolean lock)
+	{
+		Connection connection=ConnectionContext.getConnection();
+		this.global.setIdentity(identity);
+		try
+		{
+			//this.ientity.OnSave(this.global);
+			for (Object listener : onOpen.getListenerList())
+			{
+				((OpenListener)listener).OnOpen(this);
+			}
+			
+			connection.commit();
+		} catch (Exception e)
+		{
+			connection.rollback(connection.transactionLevel());
+			return false;
+		}
 		return true;
 	}
 	
-	public final synchronized static void Stop()
-	{
-		Connection connection = ConnectionContext.getConnection();
-		connection.close();
-		return;
-	}
 	
-	protected final String GetStringProperty(String name)
+	protected String GetStringProperty(String name)
 	{
 		NodeReference nodeReference = global.getNodeReference();
 		nodeReference.appendSubscript(name);
 		return nodeReference.getString();
 	}
-	protected final String GetStringProperty(int nametoken)
+	protected String GetStringProperty(int nametoken)
 	{
 		NodeReference nodeReference = global.getNodeReference();
 		nodeReference.appendSubscript(nametoken);
 		return nodeReference.getString();
 	}
-	protected final void SetStringProperty(String name,String value)
+	protected void SetStringProperty(String name,String value)
 	{
 		NodeReference nodeReference = global.getNodeReference();
 		nodeReference.appendSubscript(name);
 		nodeReference.set(value);
 	}
-	protected final void SetStringProperty(int nametoken,String value)
+	protected void SetStringProperty(int nametoken,String value)
 	{
 		NodeReference nodeReference = global.getNodeReference();
 		nodeReference.appendSubscript(nametoken);

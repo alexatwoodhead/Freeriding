@@ -29,18 +29,27 @@ import com.freeriding.data.Subscript;
 
 public class Person extends Entity {
 
-	private Global global=new Global("Test",new Subscript("People"));
-	private OpenListener openListener=new OpenListener(){
+	//@Override
+	//{
+	//global=new Global("Test",new Subscript("People"));
+	//}
+	
+	protected void setGlobal()
+	{
+		global=new Global("Test",new Subscript("People"));
+	}
+	/*
+	protected OpenListener openListener=new OpenListener(){
 		public void OnOpen(Entity entity) {
 			//this.surname=entity.
 		}
-	};
+	}; */
 	
-	Person()
+	public Person()
 	{
 		super();
 	}
-	Person(long identity) throws InstanceNotFoundException
+	public Person(long identity) throws InstanceNotFoundException
 	{
 		super(identity);
 		this.surname=GetStringProperty("Surname");
@@ -49,7 +58,7 @@ public class Person extends Entity {
 	
 	protected void OnSave()
 	{
-		SetStringProperty("Surename",this.surname);
+		SetStringProperty("Surname",this.surname);
 		SetStringProperty("Forename",this.forename);
 	}
 	
@@ -57,5 +66,11 @@ public class Person extends Entity {
 	
 	private String surname;
 	private String forename;
+	
+	public String getSurname() { return this.surname;}
+	public void setSurname(String name) { this.surname=name;}
+	
+	public String getForename() { return this.forename;}
+	public void setForename(String name) { this.forename=name;}
 
 }
