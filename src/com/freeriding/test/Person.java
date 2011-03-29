@@ -18,22 +18,17 @@
  */
 package com.freeriding.test;
 
+import java.util.Date;
 import java.util.List;
 
 import com.freeriding.data.Entity;
 import com.freeriding.data.Global;
-import com.freeriding.data.IEntity;
 import com.freeriding.data.InstanceNotFoundException;
-import com.freeriding.data.OpenListener;
 import com.freeriding.data.Subscript;
 
 public class Person extends Entity {
 
-	//@Override
-	//{
-	//global=new Global("Test",new Subscript("People"));
-	//}
-	
+	///@Override
 	protected void setGlobal()
 	{
 		global=new Global("Test",new Subscript("People"));
@@ -54,23 +49,30 @@ public class Person extends Entity {
 		super(identity);
 		this.surname=GetStringProperty("Surname");
 		this.forename=GetStringProperty("Forename");
+		this.dateOfBirth=GetDateProperty("DateOfBirth");
 	}
-	
+	///@Override
 	protected void OnSave()
 	{
 		SetStringProperty("Surname",this.surname);
 		SetStringProperty("Forename",this.forename);
+		SetDateProperty("DateOfBirth",this.dateOfBirth);
 	}
-	
+	///@Override
 	protected boolean OnValidate(List<String> validationErrors) {return true;}
 	
 	private String surname;
 	private String forename;
+	private Date dateOfBirth;
 	
 	public String getSurname() { return this.surname;}
 	public void setSurname(String name) { this.surname=name;}
 	
 	public String getForename() { return this.forename;}
 	public void setForename(String name) { this.forename=name;}
+	
+	public Date getDateOfBirth() { return this.dateOfBirth;}
+	public void setDateOfBirth(Date date) { this.dateOfBirth=date;}
 
+	
 }

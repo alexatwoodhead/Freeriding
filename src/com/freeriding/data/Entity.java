@@ -18,7 +18,10 @@
  */
 package com.freeriding.data;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import javax.swing.event.EventListenerList;
@@ -32,6 +35,9 @@ public class Entity implements IEntity {
 	//private NodeReference nodeReference;
 	private boolean isDisposed=false;
 	private boolean isLocked=false;
+	
+	private SimpleDateFormat dateformaterIn=new SimpleDateFormat("yyyymmdd.hhmmss");
+	private SimpleDateFormat dateformaterOut=new SimpleDateFormat("yyyymmdd.hhmmss");
 	//protected IEntity ientity;
 	
 	protected Global global;
@@ -238,6 +244,31 @@ public class Entity implements IEntity {
 		nodeReference.appendSubscript(nametoken);
 		return nodeReference.getString();
 	}
+	protected synchronized final Date GetDateProperty(String name)
+	{
+		Date ret=null;
+		NodeReference nodeReference = global.getNodeReference();
+		nodeReference.appendSubscript(name);
+		String sdate=nodeReference.getString();
+		if (sdate==null) return ret;
+		try{
+			ret=dateformaterOut.parse(sdate);
+		} catch (ParseException e) {}
+		return ret;
+	}
+	
+	protected synchronized final Date GetDateProperty(int nametoken)
+	{
+		NodeReference nodeReference = global.getNodeReference();
+		nodeReference.appendSubscript(nametoken);
+		String sdate=nodeReference.getString();
+		try{
+			return dateformaterOut.parse(sdate);
+		} catch (ParseException e)
+		{
+			return null;
+		}
+	}
 	protected final void SetStringProperty(String name,String value)
 	{
 		NodeReference nodeReference = global.getNodeReference();
@@ -248,6 +279,20 @@ public class Entity implements IEntity {
 	{
 		NodeReference nodeReference = global.getNodeReference();
 		nodeReference.appendSubscript(nametoken);
+		nodeReference.set(value);
+	}
+	protected synchronized final void SetDateProperty(String name,Date date)
+	{
+		NodeReference nodeReference = global.getNodeReference();
+		nodeReference.appendSubscript(name);
+		String value=dateformaterIn.format(date);
+		nodeReference.set(value);
+	}
+	protected synchronized final void SetDateProperty(int nametoken,Date date)
+	{
+		NodeReference nodeReference = global.getNodeReference();
+		nodeReference.appendSubscript(nametoken);
+		String value=dateformaterIn.format(date);
 		nodeReference.set(value);
 	}
 
